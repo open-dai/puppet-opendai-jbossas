@@ -1,0 +1,10 @@
+<VirtualHost *:80>
+ServerName <%= $servername %>
+
+ProxyPass / http://puppetagent.opendai.com:8080/
+ProxyPassReverse / http://puppetagent.opendai.com:8080/
+ProxyPreserveHost On
+ProxyPassReverseCookiePath / /
+ErrorLog logs/firstdomain-error_log
+CustomLog logs/firstdomain-access_log combined
+</VirtualHost> 
