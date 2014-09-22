@@ -1,4 +1,4 @@
-name 'Luca-jbossas'
+name 'opendai-jbossas'
 version '1.0.0'
 
 author 'Luca Gioppo'

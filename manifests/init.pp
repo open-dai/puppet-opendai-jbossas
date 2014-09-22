@@ -54,9 +54,11 @@ class jbossas (
   $ensure                  = $jbossas::params::ensure,
   $autoupgrade             = $jbossas::params::autoupgrade,
   $mode                    = $jbossas::params::modes,
+  $role                    = $jbossas::params::role,
   $bind_address            = $jbossas::params::bind_address,
   $bind_address_management = $jbossas::params::bind_address_management,
   $bind_address_unsecure   = $jbossas::params::bind_address_unsecure,
+  $domain_master_address   = $jbossas::params::domain_master_address,
   $domain_master_port      = $jbossas::params::domain_master_port,
   $management_native_port  = $jbossas::params::management_native_port,
   $management_http_port    = $jbossas::params::management_http_port,
@@ -68,7 +70,10 @@ class jbossas (
   $deploy_dir              = $jbossas::params::deploy_dir,
   $package_url             = $jbossas::params::package_url,
   $version                 = $jbossas::params::version,
-  $status                  = $jbossas::params::status,) inherits jbossas::params {
+  $status                  = $jbossas::params::status,
+  $jboss_user              = $jbossas::params::jboss_user,
+  $jboss_group             = $jbossas::params::jboss_group,
+  $service_name            = $jbossas::params::service_name) inherits jbossas::params {
   # ### Validate parameters
 
   # ensure
@@ -77,7 +82,7 @@ class jbossas (
   }
 
   # autoupgrade
- # validate_bool($autoupgrade)
+  # validate_bool($autoupgrade)
 
   # service status
   if !($status in ['enabled', 'disabled', 'running', 'unmanaged']) {
@@ -88,7 +93,39 @@ class jbossas (
   if !($mode in ['domain', 'standalone']) {
     fail("\"${mode}\" is not a valid mode parameter value")
   }
+  
+  # role
+  if !($role in ['master', 'slave']) {
+    fail("\"${role}\" is not a valid mode parameter value")
+  }
 
+  # ### create internal variables
+  $jboss_user_home = "/home/$jboss_user"
+
+  case $role {
+    'master'               : {
+      $host_config = 'host'
+    }
+    'slave'               : {
+      $host_config = 'host-slave'
+    }
+  }
+  
+  case $version{
+    '7.1.1':{
+      $filename='jboss-as-7.1.1.Final.zip'
+      $folder='jboss-as-7.1.1.Final'
+      $deploy_module_dir="${deploy_dir}/modules/"
+      $load_balancer_group='domain'
+    }
+    'EAP6.1.a':{
+      $filename='jboss-eap-6.1.0.Alpha.zip'
+      $folder='jboss-eap-6.1'
+      $deploy_module_dir="${deploy_dir}/modules/system/layers/base/"
+      $load_balancer_group='load-balancing-group'
+    }
+  }
+  
   # ### Manage actions
 
   # repository
@@ -102,13 +139,15 @@ class jbossas (
   }
 
   # configuration
-  class { 'jbossas::config':
-  }
+  #  class { 'jbossas::config':
+  #    require => Class['jbossas::install'],
+  #  }
 
   # FIXME/TODO: Remove this declaration or this comment. See "config.pp" for more information.
 
   # service
   class { 'jbossas::service':
+  #    require => Class['jbossas::install'],
   }
 
   # ### Manage relationships          # FIXME/TODO: Remove the whole relationships block if not needed
@@ -119,9 +158,9 @@ class jbossas (
     #   "repo.pp" for more information.
 
     # we need the software before configuring it
-    Class['jbossas::install'] -> Class['jbossas::config']
+    #    Class['jbossas::install'] -> Class['jbossas::config']
     # FIXME/TODO: Remove this relationship or this comment. See "config.pp"
-    Class['jbossas::config'] -> Class['jbossas::service']
+    #    Class['jbossas::config'] -> Class['jbossas::service']
     Class['jbossas::install'] -> Class['jbossas::service']
     # for more information.
     # TODO check if $enable_service=true

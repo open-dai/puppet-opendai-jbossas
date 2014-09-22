@@ -88,9 +88,9 @@ start() {
   if [ ! -z "$JBOSS_USER" ]; then
     if [ -x /etc/rc.d/init.d/functions ]; then
       #daemon --user $JBOSS_USER LAUNCH_JBOSS_IN_BACKGROUND=1 JBOSS_PIDFILE=$JBOSS_PIDFILE $JBOSS_SCRIPT -c $JBOSS_CONFIG 2>&1 > $JBOSS_CONSOLE_LOG &
-	  daemon --user $JBOSS_USER LAUNCH_JBOSS_IN_BACKGROUND=1 JBOSS_PIDFILE=$JBOSS_PIDFILE $JBOSS_SCRIPT -c $JBOSS_CONFIG <% if scope.lookupvar('jbossas::mode') == "domain" %>--host-config=<%= scope.lookupvar('jbossas::host_config') %>.xml<% end %> -P=$JBOSS_HOME/jboss.properties 2>&1 > $JBOSS_CONSOLE_LOG &
+	  daemon --user $JBOSS_USER LAUNCH_JBOSS_IN_BACKGROUND=1 JBOSS_PIDFILE=$JBOSS_PIDFILE $JBOSS_SCRIPT -c $JBOSS_CONFIG -P=$JBOSS_HOME/jboss.properties <% if scope.lookupvar('jbossas::mode') == "domain" %>--host-config=<%= scope.lookupvar('jbossas::host_config') %>.xml<% end %> 2>&1 > $JBOSS_CONSOLE_LOG &
     else
-      su - $JBOSS_USER -c "LAUNCH_JBOSS_IN_BACKGROUND=1 JBOSS_PIDFILE=$JBOSS_PIDFILE $JBOSS_SCRIPT -c $JBOSS_CONFIG -P=$JBOSS_HOME/jboss.properties" 2>&1 > $JBOSS_CONSOLE_LOG &
+      su - $JBOSS_USER -c "LAUNCH_JBOSS_IN_BACKGROUND=1 JBOSS_PIDFILE=$JBOSS_PIDFILE $JBOSS_SCRIPT -c $JBOSS_CONFIG -P=$JBOSS_HOME/jboss.properties <% if scope.lookupvar('jbossas::mode') == "domain" %>--host-config=<%= scope.lookupvar('jbossas::host_config') %>.xml<% end %>" 2>&1 > $JBOSS_CONSOLE_LOG &
     fi
   fi
 

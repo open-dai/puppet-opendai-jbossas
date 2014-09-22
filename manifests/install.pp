@@ -23,77 +23,91 @@
 # * Luca Gioppo <mailto:gioppoluca@libero.it>
 #
 class jbossas::install {
-  $file_url = "${jbossas::package_url}jboss-as-${jbossas::version}.Final.tar.gz"
-  $down_dir = '/home/jbossas/tmp'
-  $dist_file = "${down_dir}/jboss-as-${jbossas::version}.tar.gz"
+  $file_url = "${jbossas::package_url}${jbossas::filename}"
+  $down_dir = "${jbossas::jboss_user_home}/tmp"
+
+  #  $dist_file = "${down_dir}/${jbossas::filename}"
+
   # ### install management
-  $jbossas_bind_address = $jbossas::bind_address
-  $jbossas_home = $jbossas::deploy_dir
+  #  $jbossas_bind_address = $jbossas::bind_address
+  #  $jbossas_home = $jbossas::deploy_dir
 
   # Create group and user
-  group { jbossas: ensure => $jbossas::ensure }
+  group { "$jbossas::jboss_group":
+    ensure => $jbossas::ensure,
+    gid    => 1001
+  }
 
-  user { jbossas:
+  user { "$jbossas::jboss_user":
     ensure     => $jbossas::ensure,
     managehome => true,
-    gid        => 'jbossas',
-    require    => Group['jbossas'],
+    gid        => "$jbossas::jboss_group",
+    uid        => 1001,
+    require    => Group["$jbossas::jboss_group"],
     comment    => 'JBoss Application Server'
   }
 
-  file { '/home/jbossas':
+  file { $jbossas::jboss_user_home:
     ensure  => $jbossas::ensure,
-    owner   => 'jbossas',
-    group   => 'jbossas',
+    owner   => "$jbossas::jboss_user",
+    group   => "$jbossas::jboss_group",
     mode    => 0775,
-    require => [Group['jbossas'], User['jbossas']]
+    require => [Group["$jbossas::jboss_group"], User["$jbossas::jboss_user"]]
   }
 
   # in operation
   if $jbossas::ensure == 'present' {
     file { $down_dir:
       ensure  => directory,
-      owner   => 'jbossas',
-      group   => 'jbossas',
+      owner   => "$jbossas::jboss_user",
+      group   => "$jbossas::jboss_group",
       mode    => 0775,
-      require => [Group['jbossas'], User['jbossas']]
-    }
-
-    exec { download_jboss_as:
-      command   => "/usr/bin/curl -v --progress-bar -o '$dist_file' '$file_url'",
-      creates   => $dist_file,
-      user      => 'jbossas',
-      logoutput => true,
-      require   => [Package['curl'], File[$down_dir]],
+      require => [Group["$jbossas::jboss_group"], User["$jbossas::jboss_user"]]
     }
 
     # we need a deploy dir where Jboss will be placed
     file { "$jbossas::deploy_dir":
       ensure  => directory,
-      owner   => 'jbossas',
-      group   => 'jbossas',
-      require => [Group['jbossas'], User['jbossas'], Exec['download_jboss_as']]
+      owner   => "$jbossas::jboss_user",
+      group   => "$jbossas::jboss_group",
+      require => [Group["$jbossas::jboss_group"], User["$jbossas::jboss_user"]]
+    }
+
+    exec { 'download_jboss_as':
+      command   => "/usr/bin/curl -v --progress-bar -o '${down_dir}/${jbossas::filename}' '$file_url'",
+      creates   => "${down_dir}/${jbossas::filename}",
+      user      => "$jbossas::jboss_user",
+      logoutput => true,
+      require   => [Package['curl'], File["$jbossas::deploy_dir"]],
     }
 
     # Extract the JBoss AS distribution
-    exec { extract_jboss_as:
-      command   => "/bin/tar -xz -f '$dist_file'",
-      creates   => "${down_dir}/jboss-as-${jbossas::version}.Final",
+    exec { 'extract_jboss_as':
+      command   => "/usr/bin/unzip ${jbossas::filename}",
+      creates   => "${down_dir}/${jbossas::folder}",
       cwd       => "${down_dir}",
-      user      => 'jbossas',
-      group     => 'jbossas',
+      user      => "$jbossas::jboss_user",
+      group     => "$jbossas::jboss_group",
       logoutput => true,
       # 			unless => "/usr/bin/test -d '$jbossas::deploy_dir'",
-      require   => [Group['jbossas'], User['jbossas'], Exec['download_jboss_as']]
+      require   => [Group["$jbossas::jboss_group"], User["$jbossas::jboss_user"], Exec['download_jboss_as'], Package['unzip']]
     }
 
-    exec { move_jboss_home:
-      command   => "/bin/mv -v ${down_dir}/jboss-as-${jbossas::version}.Final/* '${jbossas::deploy_dir}'",
+    exec { 'move_jboss_home':
+      command   => "/bin/mv -v ${down_dir}/${jbossas::folder}/* '${jbossas::deploy_dir}'",
       creates   => "$jbossas::deploy_dir/bin",
       logoutput => true,
       require   => Exec['extract_jboss_as']
     }
     notice("/bin/mv -v ${down_dir}/jboss-as-${jbossas::version}.Final/* '${jbossas::deploy_dir}'")
+
+    # this has to be created here for not having duplicates in define
+    file { ["${jbossas::deploy_module_dir}com", "${jbossas::deploy_module_dir}org",]:
+      ensure  => "directory",
+      owner   => $jbossas::jboss_user,
+      group   => $jbossas::jboss_group,
+      require => Exec['move_jboss_home'],
+    }
 
     # install part needed for service
     file { '/etc/jboss-as':
@@ -103,36 +117,47 @@ class jbossas::install {
     }
 
     file { '/etc/jboss-as/jboss-as.conf':
-      content => template('jbossas/jboss-as.conf.erb'),
+      content => template("jbossas/${jbossas::version}/jboss-as.conf.erb"),
       owner   => 'root',
       group   => 'root',
       mode    => 0644,
       require => File['/etc/jboss-as'],
     }
 
+    if $jbossas::role == "slave" {
+      file { "${jbossas::deploy_dir}/domain/configuration/host-slave.xml":
+        content => template("jbossas/${jbossas::version}/host-slave.xml.erb"),
+        owner   => 'root',
+        group   => 'root',
+        mode    => 0755,
+        require => Exec['move_jboss_home'],
+      }
+    }
+
     file { '/var/run/jboss-as':
       ensure => directory,
-      owner  => 'jbossas',
-      group  => 'jbossas',
+      owner  => "$jbossas::jboss_user",
+      group  => "$jbossas::jboss_group",
       mode   => 0775
     }
-    
-    file { '/etc/init.d/jboss-as':
-      content => template('jbossas/jboss-as.sh.erb'),
+
+    file { "/etc/init.d/${jbossas::service_name}":
+      content => template("jbossas/${jbossas::version}/jboss-as.sh.erb"),
       owner   => 'root',
       group   => 'root',
       mode    => 0755,
       require => File['/var/run/jboss-as'],
     }
-    
+
     file { "${jbossas::deploy_dir}/jboss.properties":
       content => template('jbossas/jboss.properties.erb'),
       owner   => 'root',
       group   => 'root',
       mode    => 0755,
-      require => File['/etc/init.d/jboss-as'],
+      require => File["/etc/init.d/${jbossas::service_name}"],
     #      notify => Service['jbossas'],
     }
+
     # removal
   } else {
   }

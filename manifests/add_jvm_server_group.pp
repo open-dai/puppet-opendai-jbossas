@@ -6,6 +6,7 @@ define jbossas::add_jvm_server_group($heap_size = '64m', $max_heap_size = '1024m
 			user => 'jbossas',
 			cwd => "${deploy_dir}",
 			provider => 'shell',
+			unless   => "curl --digest -D - http://${jbossas::admin_user}:${jbossas::admin_user_password}@${jbossas::bind_address_management}:9990/management/ -d '{\"operation\":\"read-resource\", \"include-runtime\":\"true\", \"address\":[{\"server-group\":\"${name}\"},{\"jvm\":\"default\"}], \"json.pretty\":1}' -HContent-Type:application/json -s|grep -q success"
 #			logoutput => true,
 	}
 	notice("/server-group=${name}/jvm=default:add(heap-size=${heap_size},max-heap-size=${max_heap_size})")

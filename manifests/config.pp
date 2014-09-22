@@ -54,7 +54,7 @@ class jbossas::config {
   exec {
 		jbossas_http_port :
 			command => "/bin/sed -i -e 's/socket-binding name=\"http\" port=\"[0-9]\\+\"/socket-binding name=\"http\" port=\"${jbossas::http_port}\"/' ${jbossas::mode}/configuration/${jbossas::mode}.xml",
-			user => 'jbossas',
+			user      => "$jbossas::jboss_user",
 			cwd => "${jbossas::deploy_dir}",
 			logoutput => true,
 			unless =>"/bin/grep 'socket-binding name=\"http\" port=\"${jbossas::http_port}\"/' ${jbossas::mode}/configuration/${jbossas::mode}.xml",
@@ -64,7 +64,7 @@ class jbossas::config {
 		jbossas_https_port :
 			command =>
 			"/bin/sed -i -e 's/socket-binding name=\"https\" port=\"[0-9]\\+\"/socket-binding name=\"https\" port=\"${jbossas::https_port}\"/' ${jbossas::mode}/configuration/${jbossas::mode}.xml",
-			user => 'jbossas',
+			user      => "$jbossas::jboss_user",
 			cwd => "${jbossas::deploy_dir}",
 			logoutput => true,
 			require => Class['jbossas::install'],

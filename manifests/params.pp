@@ -77,9 +77,11 @@ class jbossas::params {
   $management_native_port = 9999
   $management_http_port = 9990
   $domain_master_port = 9999
+  $domain_master_address = '0.0.0.0'
   $enable_service = true
   $deploy_dir = '/usr/share/jboss-as'
   $modes = 'standalone'
+  $role  = 'master'
   $package_url = 'http://download.jboss.org/jbossas/7.1/jboss-as-7.1.1.Final/'
   $version = '7.1.1'
   # service status
@@ -89,6 +91,6 @@ class jbossas::params {
   $service_hasstatus = true
   $service_pattern = $service_name
   $admin_user = 'admin'
-  $admin_user_password = 'opendaiadmin'
+  $admin_user_password = 'admin'
 
 }

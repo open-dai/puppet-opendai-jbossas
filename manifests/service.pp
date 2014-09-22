@@ -73,10 +73,10 @@ class jbossas::service {
   }
 
   # action
-  service { 'jbossas':
+  service { "${jbossas::service_name}":
     ensure     => $service_ensure,
     enable     => $service_enable,
-    name       => $jbossas::params::service_name,
+    name       => $jbossas::service_name,
     hasstatus  => $jbossas::params::service_hasstatus,
     hasrestart => $jbossas::params::service_hasrestart,
     pattern    => $jbossas::params::service_pattern,
