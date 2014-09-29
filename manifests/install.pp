@@ -78,7 +78,7 @@ class jbossas::install {
       creates   => "${down_dir}/${jbossas::filename}",
       user      => "$jbossas::jboss_user",
       logoutput => true,
-      require   => [Package['curl'], File["$jbossas::deploy_dir"]],
+      require   => [Package['curl'], File["$jbossas::deploy_dir"], File["$down_dir"]],
     }
 
     # Extract the JBoss AS distribution
